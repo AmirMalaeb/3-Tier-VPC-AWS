@@ -91,6 +91,7 @@ This command creates a VPC with the CIDR block 10.0.0.0/16 and tags it with the 
 
 Note: When planning your VPC, ensure you choose a CIDR block that doesn't overlap with your other networks and provides enough IP addresses for your current and future needs.
 
+--------------------------------------------------------------------------------
 
 ### Step 2: Enable DNS Hostnames <a name="step2"></a>
 
@@ -119,6 +120,7 @@ aws ec2 modify-vpc-attribute --vpc-id <vpc-id> --enable-dns-hostnames "{\"Value\
 
 This command enables DNS hostnames for your VPC.
 
+--------------------------------------------------------------------------------
 
 ### Step 3: Create Internet Gateway <a name="step3"></a>
 
@@ -140,6 +142,7 @@ aws ec2 attach-internet-gateway --vpc-id <vpc-id> --internet-gateway-id <igw-id>
 ```
 These commands create an Internet Gateway and attach it to your VPC.
 
+--------------------------------------------------------------------------------
 
 ### Step 4: Create Subnets <a name="step4"></a>
 
@@ -177,6 +180,7 @@ These commands create six subnets: two for each tier (public, private, and data)
 
 Note: Ensure that your chosen CIDR blocks fit within your VPC's CIDR range and do not overlap.
 
+--------------------------------------------------------------------------------
 
 ### Step 5: Enable Auto-assign Public IP for Public Subnets <a name="step5"></a>
 
@@ -205,6 +209,7 @@ aws ec2 modify-subnet-attribute --subnet-id <public-subnet-2-id> --map-public-ip
 
 These commands enable the auto-assign public IP feature for both of your public subnets.
 
+--------------------------------------------------------------------------------
 
 ### Step 6: Create and Configure Public Route Table <a name="step6"></a>
 
@@ -244,6 +249,7 @@ aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <pub
 
 These commands create a new route table, add a route to the Internet Gateway, and associate it with your public subnets.
 
+--------------------------------------------------------------------------------
 
 ### Step 7: Create NAT Gateways <a name="step7"></a>
 
