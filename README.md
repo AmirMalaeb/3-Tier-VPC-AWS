@@ -1045,8 +1045,6 @@ Always double-check your AWS Console after running these commands to ensure all 
 
 --------------------------------------------------------------------------------
 
-## Conclusion <a name="conclusion"></a>
-
 ### Final Note
 
 Thank you for using this guide! If you have any questions, suggestions, or feedback, please don't hesitate to reach out. You can contact me at amir.malaeb@gmail.com.
