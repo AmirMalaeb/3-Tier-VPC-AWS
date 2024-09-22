@@ -1,7 +1,4 @@
-# 3-Tier-VPC-AWS
-
-
-Introduction
+Building a 3-Tier VPC on AWS
 
 This README file will guide you through building a 3-tier VPC architecture on AWS. This tutorial is designed for cloud enthusiasts and DevOps practitioners who want to understand the basics of networking on AWS. We’ll be using the AWS Command Line Interface (CLI) to create resources and automate the process of setting up a scalable VPC.
 
@@ -23,4 +20,9 @@ The AWS CLI is a unified tool to manage your AWS services. You can install it by
 After installing, you’ll need to configure your CLI with your credentials and default region:
 ```bash
 aws configure
+```
+
+This command will prompt you to enter your AWS Access Key, Secret Key, default region, and output format. For a more secure way of handling multiple AWS accounts, you can create named profiles:
+```bash
+aws configure --profile my-profile
 ```
