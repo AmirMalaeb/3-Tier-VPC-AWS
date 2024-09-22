@@ -405,18 +405,6 @@ Note: The principle of least privilege should be applied when setting up securit
 
 --------------------------------------------------------------------------------
 
-# Building a 3-Tier VPC in AWS
-
-[Update Table of Contents to include new step]
-
-## Table of Contents
-...
-   - [Step 9: Create Security Groups](#step9)
-   - [Step 10: Launch EC2 Instances](#step10)
-4. [Conclusion](#conclusion)
-
-[Previous content remains unchanged up to Step 10]
-
 ### Step 10: Launch EC2 Instances (Optional) <a name="step10"></a>
 
 To test our VPC setup, we'll launch EC2 instances in each tier of our architecture. This step will help verify that our network configuration, routing, and security groups are working as expected.
