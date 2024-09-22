@@ -7,12 +7,15 @@ This guide will walk you through the process of creating a 3-tier Virtual Privat
 2. [Prerequisites](#prerequisites)
 3. [Step-by-Step Guide](#guide)
    - [Step 1: Create the VPC](#step1)
-   - [Step 2: Create Subnets](#step2)
+     - [Understanding CIDR Blocks](#cidr-blocks)
+   - [Step 2: Enable DNS Hostnames](#step2)
    - [Step 3: Create Internet Gateway](#step3)
-   - [Step 4: Create NAT Gateways](#step4)
-   - [Step 5: Create Route Tables](#step5)
-   - [Step 6: Create Security Groups](#step6)
+   - [Step 4: Create Subnets](#step4)
+   - [Step 5: Create NAT Gateways](#step5)
+   - [Step 6: Create Route Tables](#step6)
+   - [Step 7: Create Security Groups](#step7)
 4. [Conclusion](#conclusion)
+
 
 ## Overview of a 3-Tier VPC <a name="overview"></a>
 
@@ -25,19 +28,57 @@ This architecture provides enhanced security and isolation for your applications
 
 ## Prerequisites <a name="prerequisites"></a>
 
-- An AWS account
-- AWS Management Console access or AWS CLI installed and configured
-- Basic understanding of AWS networking concepts
+Before you begin, ensure you have the following:
 
-## Step-by-Step Guide <a name="guide"></a>
+1. An AWS account
+2. AWS Management Console access
+3. (Optional) AWS CLI installed and configured
+   - To install the AWS CLI, follow the [official AWS CLI installation guide](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+   - After installation, configure the AWS CLI with your credentials:
+     ```
+     aws configure
+     ```
+   - You'll need to provide your AWS Access Key ID, Secret Access Key, default region name, and output format
+4. Basic understanding of AWS networking concepts
+5. Sufficient permissions to create and manage VPC resources
+
+Note: If you're using the AWS CLI, make sure your configured credentials have the necessary permissions to create and manage VPC resources.
+
+[Remainder of the content remains unchanged]
+
+
+# Building a 3-Tier VPC in AWS
 
 ### Step 1: Create the VPC <a name="step1"></a>
+
+#### Understanding CIDR Blocks
+
+Before creating the VPC, it's important to understand CIDR (Classless Inter-Domain Routing) blocks:
+
+- A CIDR block represents a range of IP addresses.
+- The format is typically `x.x.x.x/y`, where `x.x.x.x` is the network address and `y` is the prefix length (also known as the subnet mask).
+- The prefix length determines the number of available IP addresses.
+
+For our VPC, we'll use `10.0.0.0/16`:
+- This CIDR block provides 65,536 available IP addresses (2^(32-16) = 2^16 = 65,536).
+- It includes all IP addresses from 10.0.0.0 to 10.0.255.255.
+
+To calculate the number of available IP addresses for any CIDR block:
+1. Subtract the prefix length from 32 (for IPv4).
+2. Raise 2 to the power of this result.
+
+For example:
+- `/24` subnet: 2^(32-24) = 2^8 = 256 IP addresses
+- `/28` subnet: 2^(32-28) = 2^4 = 16 IP addresses
 
 #### Console Instructions:
 1. Navigate to the VPC dashboard in the AWS Management Console
 2. Click "Create VPC"
 3. Choose "VPC and more"
-4. Configure your VPC settings (e.g., name, IPv4 CIDR block)
+4. Configure your VPC settings:
+   - Name tag: My3TierVPC
+   - IPv4 CIDR block: 10.0.0.0/16
+5. Leave other settings as default and click "Create VPC"
 
 #### CLI Command:
 ```bash
@@ -46,25 +87,88 @@ aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications 'ResourceType=v
 
 This command creates a VPC with the CIDR block 10.0.0.0/16 and tags it with the name "My3TierVPC".
 
-### Step 2: Create Subnets <a name="step2"></a>
+Note: When planning your VPC, ensure you choose a CIDR block that doesn't overlap with your other networks and provides enough IP addresses for your current and future needs.
+
+### Step 2: Enable DNS Hostnames <a name="step2"></a>
+
+Enabling DNS hostnames is an important step in setting up your VPC. Here's why:
+
+1. **Automatic DNS naming**: When enabled, EC2 instances in your VPC automatically receive DNS hostnames that correspond to their public IP addresses.
+
+2. **Internal DNS resolution**: It allows instances within your VPC to resolve the DNS hostnames of other instances to their private IP addresses.
+
+3. **Integration with other AWS services**: Many AWS services rely on DNS resolution. Enabling this feature ensures smoother integration with services like Amazon RDS, ElastiCache, and ELB.
+
+4. **Simplified network management**: It makes it easier to reference instances by name rather than IP address, which can simplify network management and troubleshooting.
+
+5. **Support for custom domain names**: If you plan to use custom domain names within your VPC, this feature is essential.
+
+#### Console Instructions:
+1. Select your VPC in the VPC dashboard
+2. Click "Actions" and choose "Edit VPC settings"
+3. Check the box for "Enable DNS hostnames"
+4. Click "Save changes"
+
+#### CLI Command:
+```bash
+aws ec2 modify-vpc-attribute --vpc-id <vpc-id> --enable-dns-hostnames "{\"Value\":true}"
+```
+
+This command enables DNS hostnames for your VPC.
+
+### Step 3: Create Internet Gateway <a name="step3"></a>
+
+#### Console Instructions:
+1. In the VPC dashboard, navigate to "Internet Gateways"
+2. Click "Create internet gateway"
+3. Name your internet gateway and create it
+4. Select the newly created internet gateway
+5. Click "Actions" and choose "Attach to VPC"
+6. Select your VPC and click "Attach"
+
+#### CLI Commands:
+```bash
+# Create Internet Gateway
+aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=My3TierVPC-IGW}]'
+
+# Attach Internet Gateway to VPC
+aws ec2 attach-internet-gateway --vpc-id <vpc-id> --internet-gateway-id <igw-id>
+```
+These commands create an Internet Gateway and attach it to your VPC.
+
+
+### Step 4: Create Subnets <a name="step4"></a>
+
+In this step, we'll create six subnets: two public subnets, two private (application) subnets, and two data subnets, spread across two Availability Zones for high availability.
 
 #### Console Instructions:
 1. In the VPC dashboard, navigate to "Subnets"
 2. Click "Create subnet"
-3. Select your VPC and create subnets for each tier in different Availability Zones
+3. Select your VPC
+4. Create the following subnets:
+   - Public Subnet 1 (AZ1)
+   - Public Subnet 2 (AZ2)
+   - Private Subnet 1 (AZ1)
+   - Private Subnet 2 (AZ2)
+   - Data Subnet 1 (AZ1)
+   - Data Subnet 2 (AZ2)
+5. For each subnet, specify a unique CIDR block within your VPC CIDR range
 
 #### CLI Commands:
 ```bash
-# Create public subnet in AZ1
+# Create public subnets
 aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.1.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PublicSubnet1}]'
+aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.2.0/24 --availability-zone us-east-1b --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PublicSubnet2}]'
 
-# Create private subnet in AZ1
-aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.2.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PrivateSubnet1}]'
+# Create private (application) subnets
+aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.3.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PrivateSubnet1}]'
+aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.4.0/24 --availability-zone us-east-1b --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=PrivateSubnet2}]'
 
-# Create data subnet in AZ1
-aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.3.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=DataSubnet1}]'
-
-# Repeat for AZ2 with different CIDR blocks
+# Create data subnets
+aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.5.0/24 --availability-zone us-east-1a --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=DataSubnet1}]'
+aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.6.0/24 --availability-zone us-east-1b --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=DataSubnet2}]'
 ```
 
-These commands create subnets for each tier in two different Availability Zones.
+These commands create six subnets: two for each tier (public, private, and data) across two different Availability Zones. Adjust the CIDR blocks and Availability Zones as needed for your specific requirements.
+
+Note: Ensure that your chosen CIDR blocks fit within your VPC's CIDR range and do not overlap.
