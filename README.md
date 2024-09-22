@@ -2,6 +2,22 @@
 
 This guide will walk you through the process of creating a 3-tier Virtual Private Cloud (VPC) in Amazon Web Services (AWS). We'll cover both the AWS Management Console method and provide AWS CLI commands for those who prefer a command-line approach.
 
+## Architecture Overview
+
+Below is a diagram illustrating the 3-tier VPC architecture we'll be building:
+
+![3-Tier VPC Architecture](3TierArchitecture.jpg)
+
+This diagram shows the key components of our setup, including:
+- Public and Private subnets across two Availability Zones
+- Internet Gateway for public internet access
+- NAT Gateways for outbound internet access from private subnets
+- Application Load Balancer in the public subnets
+- EC2 instances in each tier
+- RDS instance in the private subnet
+
+As we progress through this guide, we'll set up each of these components step by step.
+
 ## Table of Contents
 1. [Overview of a 3-Tier VPC](#overview)
 2. [Prerequisites](#prerequisites)
