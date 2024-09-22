@@ -12,9 +12,10 @@ This guide will walk you through the process of creating a 3-tier Virtual Privat
    - [Step 3: Create Internet Gateway](#step3)
    - [Step 4: Create Subnets](#step4)
    - [Step 5: Enable Auto-assign Public IP for Public Subnets](#step5)
-   - [Step 6: Create NAT Gateways](#step6)
-   - [Step 7: Create Route Tables](#step7)
-   - [Step 8: Create Security Groups](#step8)
+   - [Step 6: Create and Configure Public Route Table](#step6)
+   - [Step 7: Create NAT Gateways](#step7)
+   - [Step 8: Create and Configure Private Route Tables](#step8)
+   - [Step 9: Create Security Groups](#step9)
 4. [Conclusion](#conclusion)
 
 
@@ -242,3 +243,92 @@ aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <pub
 ```
 
 These commands create a new route table, add a route to the Internet Gateway, and associate it with your public subnets.
+
+
+### Step 7: Create NAT Gateways <a name="step7"></a>
+
+NAT (Network Address Translation) Gateways allow instances in private subnets to access the internet or other AWS services while preventing the internet from initiating connections to these instances.
+
+#### Why this step is important:
+1. **Outbound Internet Access**: Enables instances in private subnets to access the internet for updates, patches, etc.
+2. **Security**: Prevents inbound connections from the internet to your private instances.
+3. **AWS Services Access**: Allows private instances to access AWS services that are outside your VPC.
+
+#### Console Instructions:
+1. Navigate to the VPC dashboard and select "NAT Gateways"
+2. Click "Create NAT Gateway"
+3. Select one of your public subnets
+4. Click "Allocate Elastic IP" to assign a new Elastic IP to the NAT Gateway
+5. Click "Create NAT Gateway"
+6. Repeat steps 2-5 for the second public subnet in a different Availability Zone for high availability
+
+#### CLI Commands:
+```bash
+# Allocate Elastic IPs
+aws ec2 allocate-address --domain vpc
+
+# Note the AllocationId from the output of the above command
+
+# Create NAT Gateway in the first public subnet
+aws ec2 create-nat-gateway --subnet-id <public-subnet-1-id> --allocation-id <elastic-ip-allocation-id-1>
+
+# Create NAT Gateway in the second public subnet (optional)
+aws ec2 create-nat-gateway --subnet-id <public-subnet-2-id> --allocation-id <elastic-ip-allocation-id-2>
+```
+
+These commands allocate Elastic IPs and create NAT Gateways in your public subnets.
+
+Note: Creating NAT Gateways in multiple Availability Zones provides high availability for your private subnets. If one AZ goes down, the other NAT Gateway can handle the traffic.
+
+Important: NAT Gateways are not included in the AWS free tier and will incur charges. Be sure to delete them and release your EIPs when they're not needed to avoid unnecessary costs.
+
+--------------------------------------------------------------------------------
+
+### Step 8: Create and Configure Private Route Table <a name="step8"></a>
+
+A private route table is essential for controlling the traffic flow from your private subnets. It ensures that outbound internet traffic from private subnets is directed through the NAT Gateway.
+
+#### Why this step is important:
+1. **Controlled Internet Access**: Allows instances in private subnets to access the internet through the NAT Gateway.
+2. **Isolation**: Keeps private subnets isolated from direct internet access.
+3. **Simplified Management**: Using a single route table for all private subnets simplifies network management.
+
+#### Console Instructions:
+1. In the VPC dashboard, navigate to "Route Tables"
+2. Click "Create route table"
+3. Name it (e.g., "Private Route Table") and select your VPC
+4. Click "Create"
+5. Select the newly created route table
+6. In the "Routes" tab, click "Edit routes"
+7. Add a new route:
+   - Destination: 0.0.0.0/0
+   - Target: Select one of your NAT Gateways
+8. Click "Save routes"
+9. In the "Subnet associations" tab, click "Edit subnet associations"
+10. Select all your private subnets (both app tier and database tier) and click "Save associations"
+
+#### CLI Commands:
+```bash
+# Create private route table
+aws ec2 create-route-table --vpc-id <vpc-id> --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=Private Route Table}]'
+
+# Add route to NAT Gateway
+aws ec2 create-route --route-table-id <route-table-id> --destination-cidr-block 0.0.0.0/0 --nat-gateway-id <nat-gateway-id>
+
+# Associate all private subnets with the route table
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <private-subnet-1-id>
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <private-subnet-2-id>
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <private-subnet-3-id>
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <private-subnet-4-id>
+```
+
+These commands create a single private route table, add a route to one of the NAT Gateways, and associate it with all private subnets.
+
+Note: While we're using a single NAT Gateway for simplicity, in a production environment, you might want to use multiple NAT Gateways (one per AZ) for high availability. In that case, you would create separate route tables for each AZ, each pointing to its respective NAT Gateway.
+
+
+
+
+
+
+
