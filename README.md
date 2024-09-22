@@ -70,8 +70,6 @@ Before you begin, ensure you have the following:
 
 Note: If you're using the AWS CLI, make sure your configured credentials have the necessary permissions to create and manage VPC resources.
 
-[Remainder of the content remains unchanged]
-
 
 # Building a 3-Tier VPC in AWS
 
