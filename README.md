@@ -39,7 +39,8 @@ As we progress through this guide, we'll set up each of these components step by
 4. [Advanced Configurations and Best Practices](#step14)
 5. [Extra Suggestions and Best Practices](#extra-suggestions)
 6. [Cost Considerations and Optimization](#cost-considerations)
-7. [Conclusion](#conclusion)
+7. [Cleanup](#cleanup)
+8. [Conclusion](#conclusion)
 
 
 
@@ -298,10 +299,10 @@ aws ec2 allocate-address --domain vpc
 # Note the AllocationId from the output of the above command
 
 # Create NAT Gateway in the first public subnet
-aws ec2 create-nat-gateway --subnet-id <public-subnet-1-id> --allocation-id <elastic-ip-allocation-id-1>
+aws ec2 create-nat-gateway --subnet-id <public-subnet-1-id> --allocation-id <elastic-ip-allocation-id-1> --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=NAT-Gateway-AZ1}]'
 
 # Create NAT Gateway in the second public subnet (optional)
-aws ec2 create-nat-gateway --subnet-id <public-subnet-2-id> --allocation-id <elastic-ip-allocation-id-2>
+aws ec2 create-nat-gateway --subnet-id <public-subnet-2-id> --allocation-id <elastic-ip-allocation-id-2> --tag-specifications 'ResourceType=natgateway,Tags=[{Key=Name,Value=NAT-Gateway-AZ2}]'
 ```
 
 These commands allocate Elastic IPs and create NAT Gateways in your public subnets.
@@ -877,6 +878,170 @@ Key takeaways:
 Remember, building a robust cloud infrastructure is an iterative process. Continually assess your architecture against your business needs, security requirements, and AWS's latest offerings.
 
 I hope this guide has provided you with a comprehensive understanding of setting up a 3-tier VPC in AWS. As you implement this architecture, don't hesitate to refer back to specific sections as needed. Good luck with your AWS journey!
+
+--------------------------------------------------------------------------------
+
+## Cleanup <a name="cleanup"></a>
+
+When you're done experimenting with your 3-tier VPC setup, it's important to clean up your resources to avoid ongoing charges. Below are instructions for both the AWS CLI and the AWS Management Console.
+
+### AWS Management Console Cleanup
+
+1. EC2 Instances:
+   - Navigate to EC2 > Instances
+   - Select all instances related to this VPC
+   - Actions > Instance State > Terminate
+
+2. Auto Scaling Group (if created):
+   - Navigate to EC2 > Auto Scaling Groups
+   - Select your Auto Scaling Group
+   - Actions > Delete
+
+3. Launch Template (if created):
+   - Navigate to EC2 > Launch Templates
+   - Select your Launch Template
+   - Actions > Delete template
+
+4. Load Balancer (if created):
+   - Navigate to EC2 > Load Balancers
+   - Select your Load Balancer
+   - Actions > Delete
+
+5. Target Group (if created):
+   - Navigate to EC2 > Target Groups
+   - Select your Target Group
+   - Actions > Delete
+
+6. RDS Instance (if created):
+   - Navigate to RDS > Databases
+   - Select your DB instance
+   - Actions > Delete
+
+7. NAT Gateways:
+   - Navigate to VPC > NAT Gateways
+   - Select each NAT Gateway
+   - Actions > Delete NAT Gateway
+
+8. Elastic IPs:
+   - Navigate to VPC > Elastic IPs
+   - Select each Elastic IP
+   - Actions > Release Elastic IP address
+
+9. Subnets:
+   - Navigate to VPC > Subnets
+   - Select each subnet associated with your VPC
+   - Actions > Delete subnet
+
+10. Route Tables:
+    - Navigate to VPC > Route Tables
+    - Select each custom route table
+    - Actions > Delete route table
+
+11. Internet Gateway:
+    - Navigate to VPC > Internet Gateways
+    - Select your Internet Gateway
+    - Actions > Detach from VPC
+    - After detaching, select it again and choose Actions > Delete Internet Gateway
+
+12. Security Groups:
+    - Navigate to EC2 > Security Groups
+    - Select each custom security group
+    - Actions > Delete security group
+    
+13. VPC:
+    - Navigate to VPC > Your VPCs
+    - Select your VPC
+    - Actions > Delete VPC
+
+Remember to delete resources in the correct order, as some resources may have dependencies on others. Always double-check that all resources have been properly deleted to avoid any unexpected charges.
+
+Note: This cleanup process will permanently delete all the resources and data associated with this VPC setup. Make sure you have backed up any important data before proceeding with the cleanup.
+
+
+## AWS CLI Cleanup <a name="cleanup"></a>
+
+When you're done experimenting with your 3-tier VPC setup, it's important to clean up your resources to avoid ongoing charges. Here's a step-by-step guide to removing all the resources we created:
+
+1. Delete EC2 Instances:
+   ```bash
+   aws ec2 terminate-instances --instance-ids <instance-id-1> <instance-id-2> <instance-id-3>
+   ```
+
+2. Delete Auto Scaling Group (if created):
+   ```bash
+   aws autoscaling delete-auto-scaling-group --auto-scaling-group-name my-asg --force-delete
+   ```
+
+3. Delete Launch Template (if created):
+   ```bash
+   aws ec2 delete-launch-template --launch-template-name my-launch-template
+   ```
+
+4. Delete Load Balancer (if created):
+   ```bash
+   aws elbv2 delete-load-balancer --load-balancer-arn <load-balancer-arn>
+   ```
+
+5. Delete Target Group (if created):
+   ```bash
+   aws elbv2 delete-target-group --target-group-arn <target-group-arn>
+   ```
+
+6. Delete RDS Instance (if created):
+   ```bash
+   aws rds delete-db-instance --db-instance-identifier mydbinstance --skip-final-snapshot
+   ```
+
+7. Delete NAT Gateways:
+   ```bash
+   aws ec2 delete-nat-gateway --nat-gateway-id <nat-gateway-id-1>
+   aws ec2 delete-nat-gateway --nat-gateway-id <nat-gateway-id-2>
+   ```
+
+8. Release Elastic IPs:
+   ```bash
+   aws ec2 release-address --allocation-id <elastic-ip-allocation-id-1>
+   aws ec2 release-address --allocation-id <elastic-ip-allocation-id-2>
+   ```
+
+9. Delete Subnets:
+   ```bash
+   aws ec2 delete-subnet --subnet-id <subnet-id-1>
+   aws ec2 delete-subnet --subnet-id <subnet-id-2>
+   # Repeat for all subnets
+   ```
+
+10. Delete Route Tables:
+    ```bash
+    aws ec2 delete-route-table --route-table-id <route-table-id-1>
+    aws ec2 delete-route-table --route-table-id <route-table-id-2>
+    ```
+
+11. Detach and Delete Internet Gateway:
+    ```bash
+    aws ec2 detach-internet-gateway --internet-gateway-id <igw-id> --vpc-id <vpc-id>
+    aws ec2 delete-internet-gateway --internet-gateway-id <igw-id>
+    ```
+
+12. Delete Security Groups:
+    ```bash
+    aws ec2 delete-security-group --group-id <web-sg-id>
+    aws ec2 delete-security-group --group-id <app-sg-id>
+    aws ec2 delete-security-group --group-id <db-sg-id>
+    aws ec2 delete-security-group --group-id <alb-sg-id>
+    aws ec2 delete-security-group --group-id <rds-sg-id>
+    ```
+
+13. Finally, Delete the VPC:
+    ```bash
+    aws ec2 delete-vpc --vpc-id <vpc-id>
+    ```
+
+Remember to replace the placeholder IDs with your actual resource IDs. Also, ensure that you delete resources in the correct order, as some resources may have dependencies on others.
+
+Note: This cleanup process will permanently delete all the resources and data associated with this VPC setup. Make sure you have backed up any important data before proceeding with the cleanup.
+
+Always double-check your AWS Console after running these commands to ensure all resources have been properly deleted and to avoid any unexpected charges.
 
 --------------------------------------------------------------------------------
 
