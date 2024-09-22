@@ -11,9 +11,10 @@ This guide will walk you through the process of creating a 3-tier Virtual Privat
    - [Step 2: Enable DNS Hostnames](#step2)
    - [Step 3: Create Internet Gateway](#step3)
    - [Step 4: Create Subnets](#step4)
-   - [Step 5: Create NAT Gateways](#step5)
-   - [Step 6: Create Route Tables](#step6)
-   - [Step 7: Create Security Groups](#step7)
+   - [Step 5: Enable Auto-assign Public IP for Public Subnets](#step5)
+   - [Step 6: Create NAT Gateways](#step6)
+   - [Step 7: Create Route Tables](#step7)
+   - [Step 8: Create Security Groups](#step8)
 4. [Conclusion](#conclusion)
 
 
@@ -89,6 +90,7 @@ This command creates a VPC with the CIDR block 10.0.0.0/16 and tags it with the 
 
 Note: When planning your VPC, ensure you choose a CIDR block that doesn't overlap with your other networks and provides enough IP addresses for your current and future needs.
 
+
 ### Step 2: Enable DNS Hostnames <a name="step2"></a>
 
 Enabling DNS hostnames is an important step in setting up your VPC. Here's why:
@@ -115,6 +117,7 @@ aws ec2 modify-vpc-attribute --vpc-id <vpc-id> --enable-dns-hostnames "{\"Value\
 ```
 
 This command enables DNS hostnames for your VPC.
+
 
 ### Step 3: Create Internet Gateway <a name="step3"></a>
 
@@ -172,3 +175,70 @@ aws ec2 create-subnet --vpc-id <vpc-id> --cidr-block 10.0.6.0/24 --availability-
 These commands create six subnets: two for each tier (public, private, and data) across two different Availability Zones. Adjust the CIDR blocks and Availability Zones as needed for your specific requirements.
 
 Note: Ensure that your chosen CIDR blocks fit within your VPC's CIDR range and do not overlap.
+
+
+### Step 5: Enable Auto-assign Public IP for Public Subnets <a name="step5"></a>
+
+Enabling auto-assign public IP for your public subnets is crucial for instances in these subnets to be accessible from the internet. Here's why this step is important:
+
+1. **Internet Accessibility**: Instances launched in these subnets will automatically receive a public IP address, allowing them to be reached from the internet.
+2. **Outbound Internet Access**: It enables instances to initiate outbound connections to the internet without the need for a NAT gateway.
+3. **Simplified Configuration**: You don't need to manually assign Elastic IP addresses to instances that need to be publicly accessible.
+
+#### Console Instructions:
+1. In the VPC dashboard, navigate to "Subnets"
+2. Select one of your public subnets
+3. Click "Actions" and choose "Edit subnet settings"
+4. Check the box for "Enable auto-assign public IPv4 address"
+5. Click "Save"
+6. Repeat for the other public subnet
+
+#### CLI Commands:
+```bash
+# Enable auto-assign public IP for PublicSubnet1
+aws ec2 modify-subnet-attribute --subnet-id <public-subnet-1-id> --map-public-ip-on-launch
+
+# Enable auto-assign public IP for PublicSubnet2
+aws ec2 modify-subnet-attribute --subnet-id <public-subnet-2-id> --map-public-ip-on-launch
+```
+
+These commands enable the auto-assign public IP feature for both of your public subnets.
+
+
+### Step 6: Create and Configure Public Route Table <a name="step6"></a>
+
+Creating and configuring a route table for your public subnets is a crucial step in setting up your VPC. This route table will enable internet access for resources in your public subnets.
+
+#### Why this step is important:
+1. **Internet Access**: It allows resources in public subnets to access the internet.
+2. **Inbound Traffic**: It enables incoming traffic from the internet to reach resources in public subnets.
+3. **Subnet Association**: It defines which subnets are public by associating them with this route table.
+
+#### Console Instructions:
+1. In the VPC dashboard, navigate to "Route Tables"
+2. Click "Create route table"
+3. Name it (e.g., "Public Route Table") and select your VPC
+4. Click "Create"
+5. Select the newly created route table
+6. In the "Routes" tab, click "Edit routes"
+7. Add a new route:
+   - Destination: 0.0.0.0/0
+   - Target: Select your Internet Gateway
+8. Click "Save routes"
+9. In the "Subnet associations" tab, click "Edit subnet associations"
+10. Select your public subnets and click "Save associations"
+
+#### CLI Commands:
+```bash
+# Create the route table
+aws ec2 create-route-table --vpc-id <vpc-id> --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=Public Route Table}]'
+
+# Add route to Internet Gateway
+aws ec2 create-route --route-table-id <route-table-id> --destination-cidr-block 0.0.0.0/0 --gateway-id <internet-gateway-id>
+
+# Associate public subnets with the route table
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <public-subnet-1-id>
+aws ec2 associate-route-table --route-table-id <route-table-id> --subnet-id <public-subnet-2-id>
+```
+
+These commands create a new route table, add a route to the Internet Gateway, and associate it with your public subnets.
